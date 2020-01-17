@@ -9,12 +9,15 @@ import {
   Keyboard
 } from 'react-native';
 import MapView, { Marker, Callout } from 'react-native-maps';
+
 import {
   requestPermissionsAsync,
   getCurrentPositionAsync
 } from 'expo-location';
 import { Feather } from '@expo/vector-icons';
+
 import api from '../services/api';
+import { connect, disconnect, subscribeToNewDevs } from '../services/socket';
 
 const Main = ({ navigation }) => {
   const [devs, setDevs] = useState([]);
@@ -44,6 +47,18 @@ const Main = ({ navigation }) => {
     loadInitialPosition();
   }, []);
 
+  useEffect(() => {
+    subscribeToNewDevs(dev => setDevs([...devs, dev]));
+  }, [devs]);
+
+  const setupWebSocket = () => {
+    disconnect();
+
+    const { latitude, longitude } = currentRegion;
+
+    connect(latitude, longitude, techs);
+  };
+
   const loadDevs = async () => {
     const { latitude, longitude } = currentRegion;
 
@@ -55,9 +70,8 @@ const Main = ({ navigation }) => {
       }
     });
 
-    console.log('response.data.devs :', response.data.devs);
-
     setDevs(response.data.devs);
+    setupWebSocket();
   };
 
   const handleRegionChange = region => {
